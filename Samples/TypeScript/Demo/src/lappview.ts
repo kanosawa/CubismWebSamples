@@ -116,6 +116,9 @@ export class LAppView {
 
       lapplive2dmanager.onUpdate();
     }
+
+    // 最終的な描画結果をフラッシュ
+    this._subdelegate.getGlManager().getGl().flush();
   }
 
   /**
@@ -220,7 +223,8 @@ export class LAppView {
     // タッチ終了
     lapplive2dmanager.onDrag(0.0, 0.0);
 
-    // シングルタップ
+    // シングルタップ（一時的に無効化）
+    /*
     const x: number = this.transformViewX(posX);
     const y: number = this.transformViewY(posY);
 
@@ -228,9 +232,10 @@ export class LAppView {
       LAppPal.printMessage(`[APP]touchesEnded x: ${x} y: ${y}`);
     }
     lapplive2dmanager.onTap(x, y);
+    */
 
     // 歯車にタップしたか
-    if (this._gear.isHit(posX, posY)) {
+    if (this._gear && this._gear.isHit(posX, posY)) {
       lapplive2dmanager.nextScene();
     }
   }

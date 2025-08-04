@@ -71,8 +71,21 @@ export class LAppSubdelegate {
 
     const gl = this._glManager.getGl();
 
+    // フレームバッファの初期化
     if (!this._frameBuffer) {
-      this._frameBuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+      try {
+        this._frameBuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+        console.log('🔧 フレームバッファ初期化:', this._frameBuffer ? 'success' : 'failed');
+
+        // フレームバッファが失敗した場合、デフォルトフレームバッファを使用
+        if (!this._frameBuffer) {
+          this._frameBuffer = null; // デフォルトフレームバッファ
+          console.log('🔧 デフォルトフレームバッファを使用');
+        }
+      } catch (error) {
+        console.error('❌ フレームバッファ初期化エラー:', error);
+        this._frameBuffer = null; // デフォルトフレームバッファ
+      }
     }
 
     // 透過設定

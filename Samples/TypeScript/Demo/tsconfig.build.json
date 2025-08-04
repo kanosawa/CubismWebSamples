@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "umd",
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "lib": ["es6", "dom"],
+    "target": "es6",
+    "typeRoots": [
+      "../../../Core",
+      "./node_modules/@types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "../../../Core/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

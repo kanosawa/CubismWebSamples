@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live2D Demo API Usage Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    #canvas {
+      border: 1px solid #ccc;
+      margin: 20px 0;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    select {
+      margin: 5px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Live2D Demo API Usage Example</h1>
+
+  <div class="controls">
+    <button onclick="initializeDemo()">Initialize Demo</button>
+    <button onclick="loadModel()">Load Model</button>
+    <button onclick="playRandomMotion()">Play Random Motion</button>
+    <button onclick="setRandomExpression()">Set Random Expression</button>
+    <button onclick="releaseDemo()">Release Demo</button>
+  </div>
+
+  <div class="controls">
+    <label>Model: </label>
+    <select id="modelSelect">
+      <option value="">Select a model</option>
+    </select>
+
+    <label>Motion: </label>
+    <select id="motionSelect">
+      <option value="">Select a motion</option>
+    </select>
+
+    <label>Expression: </label>
+    <select id="expressionSelect">
+      <option value="">Select an expression</option>
+    </select>
+  </div>
+
+  <canvas id="canvas" width="800" height="600"></canvas>
+
+  <!-- Load the compiled JavaScript files -->
+  <script src="./Core/live2dcubismcore.js"></script>
+  <script src="./dist/Framework.js"></script>
+  <script src="./dist/Demo.js"></script>
+
+  <script>
+    let demoAPI = null;
+    let animationId = null;
+
+    // Initialize the demo
+    function initializeDemo() {
+      const canvas = document.getElementById('canvas');
+
+      // Get the demo API instance
+      demoAPI = window.CubismDemoAPI.getInstance();
+
+      // Initialize with custom canvas
+      if (demoAPI.initialize(canvas)) {
+        console.log('Demo initialized successfully');
+
+        // Populate model select
+        populateModelSelect();
+
+        // Start the render loop
+        startRenderLoop();
+      } else {
+        console.error('Failed to initialize demo');
+      }
+    }
+
+    // Load a model
+    function loadModel() {
+      if (!demoAPI) {
+        alert('Please initialize the demo first');
+        return;
+      }
+
+      const modelSelect = document.getElementById('modelSelect');
+      const selectedModel = modelSelect.value;
+
+      if (selectedModel) {
+        demoAPI.loadModel(selectedModel);
+        console.log('Loading model:', selectedModel);
+
+        // Update motion and expression lists after model loads
+        setTimeout(() => {
+          populateMotionSelect();
+          populateExpressionSelect();
+        }, 1000);
+      } else {
+        alert('Please select a model first');
+      }
+    }
+
+    // Play a random motion
+    function playRandomMotion() {
+      if (!demoAPI) {
+        alert('Please initialize the demo first');
+        return;
+      }
+
+      const motions = demoAPI.getAvailableMotions();
+      if (motions.length > 0) {
+        const randomMotion = motions[Math.floor(Math.random() * motions.length)];
+        demoAPI.playMotion(randomMotion);
+        console.log('Playing motion:', randomMotion);
+      } else {
+        alert('No motions available');
+      }
+    }
+
+    // Set a random expression
+    function setRandomExpression() {
+      if (!demoAPI) {
+        alert('Please initialize the demo first');
+        return;
+      }
+
+      const expressions = demoAPI.getAvailableExpressions();
+      if (expressions.length > 0) {
+        const randomExpression = expressions[Math.floor(Math.random() * expressions.length)];
+        demoAPI.setExpression(randomExpression);
+        console.log('Setting expression:', randomExpression);
+      } else {
+        alert('No expressions available');
+      }
+    }
+
+    // Release the demo
+    function releaseDemo() {
+      if (demoAPI) {
+        demoAPI.release();
+        demoAPI = null;
+
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+
+        console.log('Demo released');
+      }
+    }
+
+    // Populate model select
+    function populateModelSelect() {
+      const modelSelect = document.getElementById('modelSelect');
+      const models = demoAPI.getAvailableModels();
+
+      modelSelect.innerHTML = '<option value="">Select a model</option>';
+      models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model.split('/').pop(); // Show just the filename
+        modelSelect.appendChild(option);
+      });
+    }
+
+    // Populate motion select
+    function populateMotionSelect() {
+      const motionSelect = document.getElementById('motionSelect');
+      const motions = demoAPI.getAvailableMotions();
+
+      motionSelect.innerHTML = '<option value="">Select a motion</option>';
+      motions.forEach(motion => {
+        const option = document.createElement('option');
+        option.value = motion;
+        option.textContent = motion;
+        motionSelect.appendChild(option);
+      });
+    }
+
+    // Populate expression select
+    function populateExpressionSelect() {
+      const expressionSelect = document.getElementById('expressionSelect');
+      const expressions = demoAPI.getAvailableExpressions();
+
+      expressionSelect.innerHTML = '<option value="">Select an expression</option>';
+      expressions.forEach(expression => {
+        const option = document.createElement('option');
+        option.value = expression;
+        option.textContent = expression;
+        expressionSelect.appendChild(option);
+      });
+    }
+
+    // Start render loop
+    function startRenderLoop() {
+      function render() {
+        if (demoAPI) {
+          demoAPI.update();
+          animationId = requestAnimationFrame(render);
+        }
+      }
+      render();
+    }
+
+    // Event listeners for selects
+    document.getElementById('motionSelect').addEventListener('change', function() {
+      if (this.value && demoAPI) {
+        demoAPI.playMotion(this.value);
+      }
+    });
+
+    document.getElementById('expressionSelect').addEventListener('change', function() {
+      if (this.value && demoAPI) {
+        demoAPI.setExpression(this.value);
+      }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+      releaseDemo();
+    });
+  </script>
+</body>
+</html>

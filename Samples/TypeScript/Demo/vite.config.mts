@@ -20,6 +20,20 @@ export default defineConfig((env: ConfigEnv): UserConfig => {
       assetsDir: 'assets',
       outDir: './dist',
       sourcemap: env.mode == 'development' ? true : false,
+      lib: {
+        entry: path.resolve(__dirname, 'src/main.ts'),
+        name: 'CubismDemo',
+        fileName: (format) => `cubism-demo.${format}.js`,
+        formats: ['umd', 'es']
+      },
+      rollupOptions: {
+        external: ['Live2DCubismCore'],
+        output: {
+          globals: {
+            'Live2DCubismCore': 'Live2DCubismCore'
+          }
+        }
+      }
     },
   };
   return common;

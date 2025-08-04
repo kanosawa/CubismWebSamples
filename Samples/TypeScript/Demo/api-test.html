@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live2D Demo API Test</title>
+  <!-- ベースパスを明示的に設定 -->
+  <base href="/Samples/TypeScript/Demo/">
+  <!-- Live2D Core & Framework -->
+  <script src="../../../Core/live2dcubismcore.js"></script>
+  <script src="../../../Framework/dist/index.js"></script>
+  <!-- Demo（UMDビルド） -->
+  <script src="./dist/cubism-demo.umd.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 2.5em;
+      font-weight: 300;
+    }
+
+    .header p {
+      margin: 10px 0 0 0;
+      opacity: 0.9;
+      font-size: 1.1em;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .canvas-container {
+      text-align: center;
+      margin: 20px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+
+    #canvas {
+      border: 3px solid #667eea;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      width: 800px;
+      height: 600px;
+      background: transparent; /* 背景を透明にしてLive2Dモデルが見えるように */
+      display: block; /* ブロック要素として表示 */
+      margin: 0 auto; /* 中央揃え */
+      position: relative;
+      z-index: 1;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .control-group {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 4px solid #667eea;
+    }
+
+    .control-group h3 {
+      margin: 0 0 15px 0;
+      color: #333;
+      font-size: 1.2em;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      background: #667eea;
+      color: white;
+    }
+
+    button:hover {
+      background: #5a6fd8;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    button.danger {
+      background: #dc3545;
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    select {
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      margin: 5px 0;
+      background: white;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .status {
+      background: #e9ecef;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid #28a745;
+    }
+
+    .status.error {
+      border-left-color: #dc3545;
+      background: #f8d7da;
+    }
+
+    .status.warning {
+      border-left-color: #ffc107;
+      background: #fff3cd;
+    }
+
+    .log {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 20px 0;
+    }
+
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px 0;
+      border-bottom: 1px solid #4a5568;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: #a0aec0;
+      margin-right: 10px;
+    }
+
+    .log-info {
+      color: #63b3ed;
+    }
+
+    .log-success {
+      color: #68d391;
+    }
+
+    .log-error {
+      color: #fc8181;
+    }
+
+    .log-warning {
+      color: #f6e05e;
+    }
+
+    .info-panel {
+      background: #e3f2fd;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      border-left: 4px solid #2196f3;
+    }
+
+    .info-panel h3 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .info-item {
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .info-label {
+      font-weight: bold;
+      color: #666;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .info-value {
+      color: #333;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Live2D Demo API Test</h1>
+      <p>UMD形式でビルドされたLive2D APIの動作確認</p>
+    </div>
+
+    <div class="content">
+      <!-- ステータス表示 -->
+      <div id="status" class="status">
+        <strong>ステータス:</strong> 初期化待ち
+      </div>
+
+      <!-- キャンバスコンテナ -->
+      <div class="canvas-container" id="canvasContainer">
+        <!-- API経由で取得したキャンバスがここに追加されます -->
+      </div>
+
+      <!-- メインコントロール -->
+      <div class="controls">
+        <div class="control-group">
+          <h3>初期化・制御</h3>
+          <div class="button-group">
+            <button onclick="initializeDemo()" id="initBtn">初期化</button>
+            <button onclick="releaseDemo()" class="danger" id="releaseBtn" disabled>リリース</button>
+          </div>
+          <div class="button-group">
+            <button onclick="startRenderLoop()" id="startBtn" disabled>レンダーループ開始</button>
+            <button onclick="stopRenderLoop()" id="stopBtn" disabled>レンダーループ停止</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>モデル操作</h3>
+          <label>モデル選択:</label>
+          <select id="modelSelect" onchange="loadSelectedModel()">
+            <option value="">モデルを選択してください</option>
+          </select>
+          <div class="button-group">
+            <button onclick="loadRandomModel()" id="loadModelBtn" disabled>ランダムモデル読み込み</button>
+            <button onclick="nextModel()" id="nextModelBtn" disabled>次のモデル</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>モーション操作</h3>
+          <label>モーション選択:</label>
+          <select id="motionSelect" onchange="playSelectedMotion()">
+            <option value="">モーションを選択してください</option>
+          </select>
+          <div class="button-group">
+            <button onclick="playRandomMotion()" id="playMotionBtn" disabled>ランダムモーション</button>
+            <button onclick="playIdleMotion()" id="idleBtn" disabled>アイドルモーション</button>
+            <button onclick="playTapMotion()" id="tapBtn" disabled>タップモーション</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>表情操作</h3>
+          <label>表情選択:</label>
+          <select id="expressionSelect" onchange="setSelectedExpression()">
+            <option value="">表情を選択してください</option>
+          </select>
+          <div class="button-group">
+            <button onclick="setRandomExpression()" id="expressionBtn" disabled>ランダム表情</button>
+            <button onclick="resetExpression()" id="resetBtn" disabled>表情リセット</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 情報パネル -->
+      <div class="info-panel">
+        <h3>現在の状態</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">初期化状態</div>
+            <div class="info-value" id="initStatus">未初期化</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">現在のモデル</div>
+            <div class="info-value" id="currentModel">なし</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">利用可能モーション数</div>
+            <div class="info-value" id="motionCount">0</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">利用可能表情数</div>
+            <div class="info-value" id="expressionCount">0</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">レンダーループ</div>
+            <div class="info-value" id="renderStatus">停止中</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">APIバージョン</div>
+            <div class="info-value">1.0.0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ログ -->
+      <div class="log" id="log">
+        <div class="log-entry">
+          <span class="log-time">[00:00:00]</span>
+          <span class="log-info">システム初期化完了</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // グローバル変数
+    let demoAPI = null;
+    let animationId = null;
+    let isInitialized = false;
+    let isRendering = false;
+    let currentModelIndex = 0;
+
+    // ログ機能
+    function log(message, type = 'info') {
+      const logContainer = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = 'log-entry';
+      logEntry.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="log-${type}">${message}</span>
+      `;
+      logContainer.appendChild(logEntry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // ステータス更新
+    function updateStatus(message, type = 'success') {
+      const statusElement = document.getElementById('status');
+      statusElement.textContent = `ステータス: ${message}`;
+      statusElement.className = `status ${type}`;
+    }
+
+    // 情報パネル更新
+    function updateInfo() {
+      document.getElementById('initStatus').textContent = isInitialized ? '初期化済み' : '未初期化';
+      document.getElementById('renderStatus').textContent = isRendering ? '実行中' : '停止中';
+    }
+
+    // 初期化
+    function initializeDemo() {
+      try {
+        console.log('初期化開始');
+        console.log('window.CubismDemoAPI:', window.CubismDemoAPI);
+        console.log('typeof window.CubismDemoAPI:', typeof window.CubismDemoAPI);
+        log('Live2D Demo APIの初期化を開始...', 'info');
+        updateStatus('初期化中...', 'warning');
+
+        // スクリプトの読み込みが完了するまで待つ
+        if (typeof window.CubismDemoAPI === 'undefined') {
+          console.log('CubismDemoAPI not ready, waiting...');
+          console.log('Retry count:', (window.retryCount || 0) + 1);
+          window.retryCount = (window.retryCount || 0) + 1;
+
+          // 最大10回までリトライ
+          if (window.retryCount > 10) {
+            console.error('CubismDemoAPI failed to load after 10 retries');
+            updateStatus('スクリプト読み込み失敗', 'error');
+            log('CubismDemoAPIの読み込みに失敗しました', 'error');
+            return;
+          }
+
+          setTimeout(initializeDemo, 500);
+          return;
+        }
+
+        // リトライカウントをリセット
+        window.retryCount = 0;
+
+        // キャンバスコンテナを取得
+        const canvasContainer = document.getElementById('canvasContainer');
+        console.log('キャンバスコンテナ:', canvasContainer);
+
+        // APIインスタンス取得
+        demoAPI = window.CubismDemoAPI.getInstance();
+        console.log('APIインスタンス:', demoAPI);
+
+        // 初期化（コンテナを渡す）
+        if (demoAPI.initialize(canvasContainer)) {
+          isInitialized = true;
+          updateStatus('初期化完了', 'success');
+          log('Live2D Demo APIの初期化が完了しました', 'success');
+
+          // API経由でキャンバスを取得して確認
+          const canvas = demoAPI.getCanvas();
+          console.log('API経由で取得したキャンバス:', canvas);
+          if (canvas) {
+            console.log('キャンバスサイズ:', canvas.width, 'x', canvas.height);
+            console.log('キャンバス表示状態:', canvas.offsetWidth, 'x', canvas.offsetHeight);
+            console.log('キャンバスの親要素:', canvas.parentNode);
+            console.log('キャンバスの位置:', canvas.offsetTop, 'x', canvas.offsetLeft);
+          }
+
+          // ボタン状態更新
+          document.getElementById('initBtn').disabled = true;
+          document.getElementById('releaseBtn').disabled = false;
+          document.getElementById('startBtn').disabled = false;
+          document.getElementById('loadModelBtn').disabled = false;
+
+          // モデルリスト更新
+          updateModelList();
+
+          // 情報更新
+          updateInfo();
+
+          // 自動的にレンダリングループを開始
+          log('初期化完了により、レンダリングループを自動開始します', 'info');
+          startRenderLoop();
+
+        } else {
+          updateStatus('初期化失敗', 'error');
+          log('Live2D Demo APIの初期化に失敗しました', 'error');
+        }
+      } catch (error) {
+        console.error('初期化エラー:', error);
+        updateStatus('初期化エラー', 'error');
+        log(`初期化エラー: ${error.message}`, 'error');
+      }
+    }
+
+    // リリース
+    function releaseDemo() {
+      try {
+        log('Live2D Demo APIのリリースを開始...', 'info');
+
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+
+        if (demoAPI) {
+          demoAPI.release();
+          demoAPI = null;
+        }
+
+        isInitialized = false;
+        isRendering = false;
+
+        updateStatus('リリース完了', 'success');
+        log('Live2D Demo APIのリリースが完了しました', 'success');
+
+        // ボタン状態更新
+        document.getElementById('initBtn').disabled = false;
+        document.getElementById('releaseBtn').disabled = true;
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = true;
+        document.getElementById('loadModelBtn').disabled = true;
+        document.getElementById('nextModelBtn').disabled = true;
+        document.getElementById('playMotionBtn').disabled = true;
+        document.getElementById('idleBtn').disabled = true;
+        document.getElementById('tapBtn').disabled = true;
+        document.getElementById('expressionBtn').disabled = true;
+        document.getElementById('resetBtn').disabled = true;
+
+        // セレクトボックスクリア
+        clearSelects();
+
+        // 情報更新
+        updateInfo();
+
+      } catch (error) {
+        log(`リリースエラー: ${error.message}`, 'error');
+      }
+    }
+
+    // レンダーループ開始
+    function startRenderLoop() {
+      if (!isInitialized || isRendering) {
+        console.log('Render loop already running or not initialized');
+        return;
+      }
+
+      isRendering = true;
+      updateStatus('レンダリング中...', 'success');
+      log('レンダーループを開始しました', 'info');
+
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+
+      let frameCount = 0;
+            function render() {
+        if (demoAPI && isRendering) {
+          demoAPI.update();
+          frameCount++;
+
+          // 100フレームごとにログ出力
+          if (frameCount % 100 === 0) {
+            console.log(`Render frame: ${frameCount}`);
+            log(`レンダーフレーム: ${frameCount}`, 'info');
+          }
+
+          animationId = requestAnimationFrame(render);
+        } else {
+          // 初回のみエラー情報を出力
+          if (frameCount === 0) {
+            console.error('❌ render() 条件不満足:');
+            console.error('  demoAPI:', demoAPI ? 'exists' : 'null');
+            console.error('  isRendering:', isRendering);
+            console.error('  isInitialized:', isInitialized);
+          }
+        }
+      }
+      render();
+
+      updateInfo();
+    }
+
+    // レンダーループ停止
+    function stopRenderLoop() {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+
+      isRendering = false;
+      updateStatus('レンダリング停止', 'warning');
+      log('レンダーループを停止しました', 'info');
+
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+
+      updateInfo();
+    }
+
+    // モデルリスト更新
+    function updateModelList() {
+      if (!demoAPI) return;
+
+      const modelSelect = document.getElementById('modelSelect');
+      const models = demoAPI.getAvailableModels();
+
+      modelSelect.innerHTML = '<option value="">モデルを選択してください</option>';
+      models.forEach((model, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = model;
+        modelSelect.appendChild(option);
+      });
+
+      document.getElementById('currentModel').textContent = 'なし';
+      document.getElementById('motionCount').textContent = '0';
+      document.getElementById('expressionCount').textContent = '0';
+    }
+
+    // 選択されたモデルを読み込み
+    function loadSelectedModel() {
+      const modelSelect = document.getElementById('modelSelect');
+      const selectedIndex = parseInt(modelSelect.value);
+
+      if (selectedIndex >= 0) {
+        loadModel(selectedIndex);
+      }
+    }
+
+    // ランダムモデル読み込み
+    function loadRandomModel() {
+      if (!demoAPI) return;
+
+      const models = demoAPI.getAvailableModels();
+      if (models.length > 0) {
+        const randomIndex = Math.floor(Math.random() * models.length);
+        loadModel(randomIndex);
+      }
+    }
+
+    // 次のモデル
+    function nextModel() {
+      if (!demoAPI) return;
+
+      const models = demoAPI.getAvailableModels();
+      if (models.length > 0) {
+        currentModelIndex = (currentModelIndex + 1) % models.length;
+        loadModel(currentModelIndex);
+      }
+    }
+
+    // モデル読み込み
+    async function loadModel(index) {
+      if (!demoAPI) return;
+
+      try {
+        const models = demoAPI.getAvailableModels();
+        if (index >= 0 && index < models.length) {
+          const modelName = models[index];
+          log(`モデル読み込み中: ${modelName}`, 'info');
+
+          await demoAPI.loadModel(modelName);
+          currentModelIndex = index;
+
+          // セレクトボックス更新
+          document.getElementById('modelSelect').value = index;
+
+          // 情報更新
+          document.getElementById('currentModel').textContent = modelName;
+
+          // モーションと表情リスト更新
+          updateMotionList();
+          updateExpressionList();
+
+          log(`モデル読み込み完了: ${modelName}`, 'success');
+
+          // ボタン有効化
+          document.getElementById('nextModelBtn').disabled = false;
+          document.getElementById('playMotionBtn').disabled = false;
+          document.getElementById('idleBtn').disabled = false;
+          document.getElementById('tapBtn').disabled = false;
+          document.getElementById('expressionBtn').disabled = false;
+          document.getElementById('resetBtn').disabled = false;
+
+          // 自動的にレンダリングループを開始
+          if (!isRendering) {
+            log('モデル読み込み完了により、レンダリングループを自動開始します', 'info');
+            console.log('Starting render loop from model load...');
+            startRenderLoop();
+          } else {
+            console.log('Render loop already running, skipping auto-start');
+          }
+
+        }
+      } catch (error) {
+        log(`モデル読み込みエラー: ${error.message}`, 'error');
+      }
+    }
+
+    // モーションリスト更新
+    function updateMotionList() {
+      if (!demoAPI) return;
+
+      const motionSelect = document.getElementById('motionSelect');
+      const motions = demoAPI.getAvailableMotions();
+
+      motionSelect.innerHTML = '<option value="">モーションを選択してください</option>';
+      motions.forEach(motion => {
+        const option = document.createElement('option');
+        option.value = motion;
+        option.textContent = motion;
+        motionSelect.appendChild(option);
+      });
+
+      document.getElementById('motionCount').textContent = motions.length.toString();
+    }
+
+    // 表情リスト更新
+    function updateExpressionList() {
+      if (!demoAPI) return;
+
+      const expressionSelect = document.getElementById('expressionSelect');
+      const expressions = demoAPI.getAvailableExpressions();
+
+      expressionSelect.innerHTML = '<option value="">表情を選択してください</option>';
+      expressions.forEach(expression => {
+        const option = document.createElement('option');
+        option.value = expression;
+        option.textContent = expression;
+        expressionSelect.appendChild(option);
+      });
+
+      document.getElementById('expressionCount').textContent = expressions.length.toString();
+    }
+
+    // 選択されたモーションを再生
+    function playSelectedMotion() {
+      const motionSelect = document.getElementById('motionSelect');
+      const selectedMotion = motionSelect.value;
+
+      if (selectedMotion) {
+        playMotion(selectedMotion);
+      }
+    }
+
+    // ランダムモーション再生
+    function playRandomMotion() {
+      if (!demoAPI) return;
+
+      const motions = demoAPI.getAvailableMotions();
+      if (motions.length > 0) {
+        const randomMotion = motions[Math.floor(Math.random() * motions.length)];
+        playMotion(randomMotion);
+      }
+    }
+
+    // アイドルモーション再生
+    function playIdleMotion() {
+      playMotion('Idle_0');
+    }
+
+    // タップモーション再生
+    function playTapMotion() {
+      playMotion('TapBody_0');
+    }
+
+    // モーション再生
+    function playMotion(motionName) {
+      if (!demoAPI) return;
+
+      try {
+        demoAPI.playMotion(motionName);
+        log(`モーション再生: ${motionName}`, 'success');
+      } catch (error) {
+        log(`モーション再生エラー: ${error.message}`, 'error');
+      }
+    }
+
+    // 選択された表情を設定
+    function setSelectedExpression() {
+      const expressionSelect = document.getElementById('expressionSelect');
+      const selectedExpression = expressionSelect.value;
+
+      if (selectedExpression) {
+        setExpression(selectedExpression);
+      }
+    }
+
+    // ランダム表情設定
+    function setRandomExpression() {
+      if (!demoAPI) return;
+
+      const expressions = demoAPI.getAvailableExpressions();
+      if (expressions.length > 0) {
+        const randomExpression = expressions[Math.floor(Math.random() * expressions.length)];
+        setExpression(randomExpression);
+      }
+    }
+
+    // 表情リセット
+    function resetExpression() {
+      setExpression('Normal');
+    }
+
+    // 表情設定
+    function setExpression(expressionName) {
+      if (!demoAPI) return;
+
+      try {
+        demoAPI.setExpression(expressionName);
+        log(`表情設定: ${expressionName}`, 'success');
+      } catch (error) {
+        log(`表情設定エラー: ${error.message}`, 'error');
+      }
+    }
+
+    // セレクトボックスクリア
+    function clearSelects() {
+      document.getElementById('modelSelect').innerHTML = '<option value="">モデルを選択してください</option>';
+      document.getElementById('motionSelect').innerHTML = '<option value="">モーションを選択してください</option>';
+      document.getElementById('expressionSelect').innerHTML = '<option value="">表情を選択してください</option>';
+    }
+
+    // ページ読み込み時の自動初期化
+    window.addEventListener('load', function() {
+      log('ページ読み込み完了', 'info');
+      console.log('ページ読み込み完了');
+      console.log('window.CubismDemoAPI:', window.CubismDemoAPI);
+      console.log('window.LAppDelegate:', window.LAppDelegate);
+      console.log('window.LAppDefine:', window.LAppDefine);
+      console.log('Live2DCubismCore:', typeof Live2DCubismCore !== 'undefined' ? 'available' : 'not available');
+
+      // デバッグ情報をログに追加
+      if (window.LAppDelegate) {
+        log('LAppDelegate: 利用可能', 'success');
+      } else {
+        log('LAppDelegate: 未定義', 'warning');
+      }
+
+      if (window.LAppDefine) {
+        log('LAppDefine: 利用可能', 'success');
+      } else {
+        log('LAppDefine: 未定義', 'warning');
+      }
+
+      updateInfo();
+
+      // 自動初期化を開始
+      log('自動初期化を開始します...', 'info');
+      setTimeout(autoInitialize, 1000); // 1秒後に自動初期化開始
+    });
+
+    // 自動初期化関数
+    async function autoInitialize() {
+      try {
+        log('自動初期化: Live2D Demo APIの初期化を開始...', 'info');
+        updateStatus('自動初期化中...', 'warning');
+
+        // スクリプトの読み込みが完了するまで待つ
+        if (typeof window.CubismDemoAPI === 'undefined') {
+          console.log('CubismDemoAPI not ready, retrying...');
+          setTimeout(autoInitialize, 500);
+          return;
+        }
+
+        // キャンバスコンテナを取得
+        const canvasContainer = document.getElementById('canvasContainer');
+        console.log('自動初期化: キャンバスコンテナ:', canvasContainer);
+
+        // APIインスタンス取得
+        demoAPI = window.CubismDemoAPI.getInstance();
+        console.log('自動初期化: APIインスタンス:', demoAPI);
+
+        // 初期化（コンテナを渡す）
+        if (demoAPI.initialize(canvasContainer)) {
+          isInitialized = true;
+          updateStatus('自動初期化完了', 'success');
+          log('自動初期化: Live2D Demo APIの初期化が完了しました', 'success');
+
+          // API経由でキャンバスを取得して確認
+          const canvas = demoAPI.getCanvas();
+          console.log('自動初期化: API経由で取得したキャンバス:', canvas);
+          if (canvas) {
+            console.log('自動初期化: キャンバスサイズ:', canvas.width, 'x', canvas.height);
+            console.log('自動初期化: キャンバスの親要素:', canvas.parentNode);
+            console.log('自動初期化: キャンバスの位置:', canvas.offsetTop, 'x', canvas.offsetLeft);
+          }
+
+          // ボタン状態更新
+          document.getElementById('initBtn').disabled = true;
+          document.getElementById('releaseBtn').disabled = false;
+          document.getElementById('startBtn').disabled = false;
+          document.getElementById('loadModelBtn').disabled = false;
+
+          // モデルリスト更新
+          updateModelList();
+
+          // 情報更新
+          updateInfo();
+
+          // 自動的にHaruモデルを読み込み
+          log('自動初期化: Haruモデルの読み込みを開始...', 'info');
+          await autoLoadHaruModel();
+
+        } else {
+          updateStatus('自動初期化失敗', 'error');
+          log('自動初期化: Live2D Demo APIの初期化に失敗しました', 'error');
+        }
+      } catch (error) {
+        console.error('自動初期化エラー:', error);
+        updateStatus('自動初期化エラー', 'error');
+        log(`自動初期化エラー: ${error.message}`, 'error');
+      }
+    }
+
+    // 自動Haruモデル読み込み
+    async function autoLoadHaruModel() {
+      if (!demoAPI) return;
+
+      try {
+        const models = demoAPI.getAvailableModels();
+        const haruIndex = models.findIndex(model => model.includes('Haru'));
+
+        if (haruIndex >= 0) {
+          const modelName = models[haruIndex];
+          log(`自動初期化: Haruモデル読み込み中: ${modelName}`, 'info');
+
+          await demoAPI.loadModel(modelName);
+          currentModelIndex = haruIndex;
+
+          // セレクトボックス更新
+          document.getElementById('modelSelect').value = haruIndex;
+
+          // 情報更新
+          document.getElementById('currentModel').textContent = modelName;
+
+          // モーションと表情リスト更新
+          updateMotionList();
+          updateExpressionList();
+
+          log(`自動初期化: Haruモデル読み込み完了: ${modelName}`, 'success');
+
+          // ボタン有効化
+          document.getElementById('nextModelBtn').disabled = false;
+          document.getElementById('playMotionBtn').disabled = false;
+          document.getElementById('idleBtn').disabled = false;
+          document.getElementById('tapBtn').disabled = false;
+          document.getElementById('expressionBtn').disabled = false;
+          document.getElementById('resetBtn').disabled = false;
+
+          // 自動的にアイドルモーションを再生
+          log('自動初期化: アイドルモーションを自動再生します', 'info');
+          demoAPI.playMotion('Idle_0');
+
+          // 自動的にレンダリングループを開始
+          log('自動初期化: レンダリングループを自動開始します', 'info');
+          startRenderLoop();
+
+          updateStatus('Haruモデル表示中', 'success');
+          log('自動初期化: 完了！Haruモデルが表示されています', 'success');
+
+        } else {
+          log('自動初期化: Haruモデルが見つかりませんでした', 'warning');
+          // Haruが見つからない場合は最初のモデルを使用
+          if (models.length > 0) {
+            await loadModel(0);
+          }
+        }
+      } catch (error) {
+        log(`自動初期化: モデル読み込みエラー: ${error.message}`, 'error');
+      }
+    }
+
+    // ページ終了時のクリーンアップ
+    window.addEventListener('beforeunload', function() {
+      if (demoAPI) {
+        releaseDemo();
+      }
+    });
+  </script>
+</body>
+</html>

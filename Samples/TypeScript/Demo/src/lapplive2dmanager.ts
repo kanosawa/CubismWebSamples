@@ -80,6 +80,12 @@ export class LAppLive2DManager {
     const { width, height } = this._subdelegate.getCanvas();
 
     const projection: CubismMatrix44 = new CubismMatrix44();
+
+    // モデルが存在するかチェック
+    if (this._models.getSize() === 0) {
+      return;
+    }
+
     const model: LAppModel = this._models.at(0);
 
     if (model.getModel()) {

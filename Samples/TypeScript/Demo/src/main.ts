@@ -7,6 +7,14 @@
 
 import { LAppDelegate } from './lappdelegate';
 import * as LAppDefine from './lappdefine';
+import { CubismDemoAPI } from './demo-api';
+
+// グローバルに公開
+if (typeof window !== 'undefined') {
+  (window as any).CubismDemoAPI = CubismDemoAPI;
+  (window as any).LAppDelegate = LAppDelegate;
+  (window as any).LAppDefine = LAppDefine;
+}
 
 /**
  * ブラウザロード後の処理

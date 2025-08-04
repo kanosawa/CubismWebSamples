@@ -176,11 +176,22 @@ export class LAppDelegate {
    * APPに必要な物を初期化する。
    */
   public initialize(): boolean {
+    // 重複初期化を防ぐ
+    if (this._isInitialized) {
+      console.log('LAppDelegate already initialized, skipping...');
+      return true;
+    }
+
+    console.log('LAppDelegate initializing...');
+
     // Cubism SDKの初期化
     this.initializeCubism();
 
     this.initializeSubdelegates();
     this.initializeEventListener();
+
+    this._isInitialized = true;
+    console.log('LAppDelegate initialization completed');
 
     return true;
   }
@@ -228,6 +239,9 @@ export class LAppDelegate {
    * Canvasを生成配置、Subdelegateを初期化する
    */
   private initializeSubdelegates(): void {
+    console.log('=== LAppDelegate initializeSubdelegates ===');
+    console.log('LAppDefine.CanvasNum:', LAppDefine.CanvasNum);
+
     let width: number = 100;
     let height: number = 100;
     if (LAppDefine.CanvasNum > 3) {
@@ -239,23 +253,32 @@ export class LAppDelegate {
       width = 100.0 / LAppDefine.CanvasNum;
     }
 
+    console.log('Canvas dimensions:', { width, height });
+
     this._canvases.prepareCapacity(LAppDefine.CanvasNum);
     this._subdelegates.prepareCapacity(LAppDefine.CanvasNum);
+
+    console.log('Creating canvases...');
     for (let i = 0; i < LAppDefine.CanvasNum; i++) {
       const canvas = document.createElement('canvas');
       this._canvases.pushBack(canvas);
       canvas.style.width = `${width}vw`;
       canvas.style.height = `${height}vh`;
 
-      // キャンバスを DOM に追加
-      document.body.appendChild(canvas);
+      // キャンバスを DOM に追加しない（API側で管理するため）
+      // document.body.appendChild(canvas);
+      console.log(`Created canvas ${i}:`, canvas);
     }
 
+    console.log('Creating subdelegates...');
     for (let i = 0; i < this._canvases.getSize(); i++) {
       const subdelegate = new LAppSubdelegate();
       subdelegate.initialize(this._canvases.at(i));
       this._subdelegates.pushBack(subdelegate);
+      console.log(`Created subdelegate ${i}:`, subdelegate);
     }
+
+    console.log('Final subdelegates count:', this._subdelegates.getSize());
 
     for (let i = 0; i < LAppDefine.CanvasNum; i++) {
       if (this._subdelegates.at(i).isContextLost()) {
@@ -273,6 +296,7 @@ export class LAppDelegate {
     this._cubismOption = new Option();
     this._subdelegates = new csmVector<LAppSubdelegate>();
     this._canvases = new csmVector<HTMLCanvasElement>();
+    this._isInitialized = false;
   }
 
   /**
@@ -309,4 +333,9 @@ export class LAppDelegate {
    * 登録済みイベントリスナー 関数オブジェクト
    */
   private pointCancelEventListener: (this: Document, ev: PointerEvent) => void;
+
+  /**
+   * 初期化状態
+   */
+  private _isInitialized: boolean;
 }

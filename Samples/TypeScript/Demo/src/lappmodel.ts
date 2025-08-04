@@ -397,38 +397,68 @@ export class LAppModel extends CubismUserModel {
 
     // Motion
     const loadCubismMotion = (): void => {
-      this._state = LoadStep.WaitLoadMotion;
-      this._model.saveParameters();
-      this._allMotionCount = 0;
+      this._state = LoadStep.LoadMotion;
       this._motionCount = 0;
-      const group: string[] = [];
-
+      this._allMotionCount = 0;
       const motionGroupCount: number = this._modelSetting.getMotionGroupCount();
 
-      // モーションの総数を求める
+      console.log('Loading motions, group count:', motionGroupCount);
+
+      // モーション総数を計算
       for (let i = 0; i < motionGroupCount; i++) {
-        group[i] = this._modelSetting.getMotionGroupName(i);
-        this._allMotionCount += this._modelSetting.getMotionCount(group[i]);
+        const group: string = this._modelSetting.getMotionGroupName(i);
+        const motionCount: number = this._modelSetting.getMotionCount(group);
+        this._allMotionCount += motionCount;
       }
+      console.log('Total motion count:', this._allMotionCount);
 
-      // モーションの読み込み
       for (let i = 0; i < motionGroupCount; i++) {
-        this.preLoadMotionGroup(group[i]);
-      }
+        const group: string = this._modelSetting.getMotionGroupName(i);
+        const motionCount: number = this._modelSetting.getMotionCount(group);
 
-      // モーションがない場合
-      if (motionGroupCount == 0) {
-        this._state = LoadStep.LoadTexture;
+        for (let j = 0; j < motionCount; j++) {
+          const motionFileName: string = this._modelSetting.getMotionFileName(group, j);
+          console.log(`Loading motion: ${group}/${motionFileName}`);
 
-        // 全てのモーションを停止する
-        this._motionManager.stopAllMotions();
+          const motionPath = this._modelHomeDir + motionFileName;
+          console.log(`Motion path: ${motionPath}`);
 
-        this._updating = false;
-        this._initialized = true;
+          fetch(motionPath)
+            .then(response => {
+              if (response.ok) {
+                return response.arrayBuffer();
+              } else if (response.status >= 400) {
+                CubismLogError(
+                  `Failed to load file ${motionPath}`
+                );
+                return new ArrayBuffer(0);
+              }
+            })
+            .then(arrayBuffer => {
+              const motion: ACubismMotion = this.loadMotion(
+                arrayBuffer,
+                arrayBuffer.byteLength,
+                group
+              );
 
-        this.createRenderer();
-        this.setupTextures();
-        this.getRenderer().startUp(this._subdelegate.getGlManager().getGl());
+              // 正しいキー名で保存（group_noの形式）
+              const motionKey = `${group}_${j}`;
+              this._motions.setValue(motionKey, motion);
+              this._motionCount++;
+
+              console.log(`Motion loaded: ${this._motionCount}/${this._allMotionCount}, key: ${motionKey}`);
+
+              if (this._motionCount >= this._allMotionCount) {
+                this._state = LoadStep.LoadTexture;
+                console.log('All motions loaded, moving to LoadTexture state');
+
+                // 強制的にテクスチャ読み込みを実行
+                this.createRenderer();
+                this.setupTextures();
+                this.getRenderer().startUp(this._subdelegate.getGlManager().getGl());
+              }
+            });
+        }
       }
     };
   }
@@ -440,9 +470,12 @@ export class LAppModel extends CubismUserModel {
     // iPhoneでのアルファ品質向上のためTypescriptではpremultipliedAlphaを採用
     const usePremultiply = true;
 
+    console.log('setupTextures called, state:', this._state);
+
     if (this._state == LoadStep.LoadTexture) {
       // テクスチャ読み込み用
       const textureCount: number = this._modelSetting.getTextureCount();
+      console.log('Loading textures, count:', textureCount);
 
       for (
         let modelTextureNumber = 0;
@@ -459,15 +492,18 @@ export class LAppModel extends CubismUserModel {
         let texturePath =
           this._modelSetting.getTextureFileName(modelTextureNumber);
         texturePath = this._modelHomeDir + texturePath;
+        console.log('Loading texture:', texturePath);
 
         // ロード完了時に呼び出すコールバック関数
         const onLoad = (textureInfo: TextureInfo): void => {
+          console.log('Texture loaded successfully:', texturePath);
           this.getRenderer().bindTexture(modelTextureNumber, textureInfo.id);
 
           this._textureCount++;
 
           if (this._textureCount >= textureCount) {
             // ロード完了
+            console.log('All textures loaded, count:', this._textureCount);
             this._state = LoadStep.CompleteSetup;
           }
         };
@@ -480,6 +516,8 @@ export class LAppModel extends CubismUserModel {
       }
 
       this._state = LoadStep.WaitLoadTexture;
+    } else {
+      console.log('setupTextures skipped, wrong state:', this._state);
     }
   }
 
@@ -611,6 +649,7 @@ export class LAppModel extends CubismUserModel {
     }
 
     const motionFileName = this._modelSetting.getMotionFileName(group, no);
+    console.log(`Starting motion: ${group}_${no}, file: ${motionFileName}`);
 
     // ex) idle_0
     const name = `${group}_${no}`;
@@ -618,6 +657,7 @@ export class LAppModel extends CubismUserModel {
     let autoDelete = false;
 
     if (motion == null) {
+      console.log(`Motion not found in cache: ${name}, loading from file`);
       fetch(`${this._modelHomeDir}${motionFileName}`)
         .then(response => {
           if (response.ok) {
@@ -653,8 +693,11 @@ export class LAppModel extends CubismUserModel {
         return InvalidMotionQueueEntryHandleValue;
       }
     } else {
+      console.log(`Motion found in cache: ${name}`);
       motion.setBeganMotionHandler(onBeganMotionHandler);
       motion.setFinishedMotionHandler(onFinishedMotionHandler);
+      // キャッシュから取得したモーションにも効果IDを設定
+      motion.setEffectIds(this._eyeBlinkIds, this._lipSyncIds);
     }
 
     //voice
@@ -950,24 +993,32 @@ export class LAppModel extends CubismUserModel {
     this._hitArea = new csmVector<csmRect>();
     this._userArea = new csmVector<csmRect>();
 
-    this._idParamAngleX = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamAngleX
-    );
-    this._idParamAngleY = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamAngleY
-    );
-    this._idParamAngleZ = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamAngleZ
-    );
-    this._idParamEyeBallX = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamEyeBallX
-    );
-    this._idParamEyeBallY = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamEyeBallY
-    );
-    this._idParamBodyAngleX = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamBodyAngleX
-    );
+    // CubismFrameworkの初期化状態を確認
+    console.log('CubismFramework state:', {
+      isStarted: CubismFramework.isStarted(),
+      isInitialized: CubismFramework.isInitialized(),
+      getIdManager: CubismFramework.getIdManager() ? 'available' : 'null'
+    });
+
+    // 安全にIDを取得
+    try {
+      this._idParamAngleX = CubismFramework.getIdManager().getId('ParamAngleX');
+      this._idParamAngleY = CubismFramework.getIdManager().getId('ParamAngleY');
+      this._idParamAngleZ = CubismFramework.getIdManager().getId('ParamAngleZ');
+      this._idParamEyeBallX = CubismFramework.getIdManager().getId('ParamEyeBallX');
+      this._idParamEyeBallY = CubismFramework.getIdManager().getId('ParamEyeBallY');
+      this._idParamBodyAngleX = CubismFramework.getIdManager().getId('ParamBodyAngleX');
+      console.log('Parameter IDs created successfully');
+    } catch (error) {
+      console.error('Failed to create parameter IDs:', error);
+      // デフォルト値を設定
+      this._idParamAngleX = null;
+      this._idParamAngleY = null;
+      this._idParamAngleZ = null;
+      this._idParamEyeBallX = null;
+      this._idParamEyeBallY = null;
+      this._idParamBodyAngleX = null;
+    }
 
     if (LAppDefine.MOCConsistencyValidationEnable) {
       this._mocConsistency = true;

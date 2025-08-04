@@ -4,6 +4,7 @@
     "start": "node copy_resources.js && vite --host",
     "build": "tsc --noEmit && node copy_resources.js && vite build --mode development",
     "build:prod": "node copy_resources.js && vite build",
+    "build:umd": "node copy_resources.js && tsc --project tsconfig.build.json",
     "copy_resources": "node copy_resources.js",
     "test": "tsc --noEmit",
     "lint": "eslint",

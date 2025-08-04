@@ -15,16 +15,16 @@ export class LAppGlManager {
 
   public initialize(canvas: HTMLCanvasElement): boolean {
     // glコンテキストを初期化
-    this._gl = canvas.getContext('webgl2');
+    this._gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl') as WebGLRenderingContext | WebGL2RenderingContext;
 
     if (!this._gl) {
       // gl初期化失敗
-      alert('Cannot initialize WebGL. This browser does not support.');
+      console.error('❌ WebGL初期化失敗: このブラウザはWebGLをサポートしていません');
       this._gl = null;
-      // document.body.innerHTML =
-      //   'This browser does not support the <code>&lt;canvas&gt;</code> element.';
       return false;
     }
+
+    console.log('✅ WebGL初期化成功:', this._gl.getParameter(this._gl.VERSION));
     return true;
   }
 
